@@ -6,7 +6,7 @@ Installation
 
 Usage
 --------
-A log line with all loaded modules will be emitted to a file in LOGFILE_ROOT named after today's date.
+A log line with all loaded modules will be appended to a file in `LOGFILE_ROOT` named after today's date.
 This is emitted on interpreter shutdown under most normal termination circumstances.  If `mpi4py` is 
 loaded, only rank 0 will log.
 
