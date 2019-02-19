@@ -18,4 +18,4 @@ Pass `-S` flag to Python interpreter to disable the `site` module and
 
 Analysis
 ---------
-Run `python PyModuleSnooper-Analyze.py <logfile-1> <...> <logfile-N>` to see a count of the most commonly imported modules on any given day(s).
+Run `./analyze.py <logfile-1> <...> <logfile-N>` to see a count of the most commonly imported modules on any given day(s).

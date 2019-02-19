@@ -1,29 +1,21 @@
+#!/usr/bin/env python
 from __future__ import print_function
 from collections import Counter
 import os
 import sys
 
-class PyModuleCounter:
-    '''Counting imported module paths'''
-    def __init__(self):
-        self._counter = Counter()
-
-    def parse_line(self, line):
-        '''Extract list of imported module paths'''
+class PyModuleCounter(Counter):
+    def _parse_line(self, line):
+        '''Get list of imported module paths'''
         if not line.startswith('PyModuleSnooper'):
             return []
         timestamp, pathName, pythonInterpreter, modulePaths = line.split(';', 3)
         return modulePaths.split(';')
         
     def countline(self, line):
-        modulePaths = self.parse_line(line)
-        self._counter += Counter(modulePaths)
-
-    def most_common(self, n):
-        return self._counter.most_common(n)
-
-    def items(self):
-        return self._counter.items()
+        '''Increment internal count from modules in line'''
+        modulePaths = self._parse_line(line)
+        self += Counter(modulePaths)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
