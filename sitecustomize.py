@@ -19,47 +19,44 @@ because users may register their own handlers.
 
 import atexit
 from datetime import datetime
+import json
 import logging
 import os
-import socket
 import sys
 
+TIME_FMT = '%m-%d-%Y %H:%M:%S.%f'
+DATE_FMT = '%m-%d-%Y'
 LOGFILE_ROOT = os.path.join('/projects', 'datascience', 'PyModuleSnooper', 'log')
-LOGFILE_ROOT = os.path.expanduser('~/PyModuleSnooper/log')
 
-def get_logger():
+class DictLogger:
     '''Set up logger to emit message to system log facility'''
-    extra_logging_fields = {'python':sys.executable,}
-    logger = logging.getLogger("PyModuleSnooper")
-    logger.propagate = False
-    logger.setLevel(logging.INFO)
+    def __init__(self):
+        now = datetime.now()
+        self._info = {
+            'timestamp' : now.strftime(TIME_FMT),
+            'sys.executable': sys.executable,
+            'sys.path': sys.path,
+            'cobalt_envs':
+                { k:v for k,v in os.environ.items() 
+                  if k.startswith('COBALT')
+                },
+        }
 
-    todays_date = datetime.now().strftime('%m-%d-%Y')
-    log_path = os.path.join(LOGFILE_ROOT, todays_date)
-    handler_file = logging.FileHandler(log_path)
+        logger = logging.getLogger("PyModuleSnooper")
+        logger.propagate = False
+        logger.setLevel(logging.INFO)
 
-    formatter = logging.Formatter(
-        'PyModuleSnooper: ts=%(asctime)s;pathName=%(pathname)s;python=%(python)s;modules=%(message)s'
-    )
-    handler_file.formatter = formatter
-    logger.addHandler(handler_file)
-    logger = logging.LoggerAdapter(logger, extra_logging_fields)
-    return logger
+        todays_date = now.strftime(DATE_FMT)
+        log_path = os.path.join(LOGFILE_ROOT, todays_date)
+        handler_file = logging.FileHandler(log_path)
+        formatter = logging.Formatter('%(message)s')
+        handler_file.formatter = formatter
+        logger.addHandler(handler_file)
+        self._logger = logger
 
-def emit_log(modules_list):
-    '''Log message containing loaded modules path list'''
-    logger = get_logger()
-    message = ';'.join(modules_list)
-    logger.info(message)
-
-def get_module_path(m):
-    '''Resolve path from a module object'''
-    if hasattr(m, '__path__') and len(m.__path__) > 0:
-        return list(m.__path__)[0]
-    elif hasattr(m, '__file__'):
-        return m.__file__
-    else:
-        return None
+    def log_modules(self, modules_dict):
+        self._info['modules'] = modules_dict
+        self._logger.info(json.dumps(self._info))
 
 def is_mpi_rank_nonzero():
     '''False if not using mpi4py, or MPI has been finalized, or MPI has
@@ -68,11 +65,10 @@ def is_mpi_rank_nonzero():
     if 'mpi4py' in sys.modules:
         if hasattr(sys.modules['mpi4py'], 'MPI'):
             MPI = sys.modules['mpi4py'].MPI
-    if MPI is None:
-        return False
 
-    # If finalized or not initialized, we can't get rank, so return
-    if MPI.Is_finalized():
+    if MPI is None: 
+        return False
+    elif MPI.Is_finalized():
         return False
     elif not MPI.Is_initialized():
         return False
@@ -81,14 +77,16 @@ def is_mpi_rank_nonzero():
 
 def inspect_and_log():
     '''Grab paths of all loaded modules and log them'''
-    if is_mpi_rank_nonzero():
-        return
-    try:
-        modules = [get_module_path(m) for m in sys.modules.values()]
-    except:
-        return
-    modules = list(set([m for m in modules if m is not None]))
-    emit_log(modules)
+    if is_mpi_rank_nonzero(): return
+    if os.environ.get('DISABLE_PYMODULE_SNOOP', False): return
+
+    logger = DictLogger()
+    modules_dict = {
+        module_name : module.__file__
+        for module_name, module in sys.modules.items()
+        if hasattr(module, '__file__')
+    }
+    logger.log_modules(modules_dict)
 
 if not os.environ.get('DISABLE_PYMODULE_SNOOP', False):
     atexit.register(inspect_and_log)
