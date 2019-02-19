@@ -80,6 +80,7 @@ def inspect_and_log():
     if is_mpi_rank_nonzero(): return
     if os.environ.get('DISABLE_PYMODULE_SNOOP', False): return
 
+    os.umask(0o002) # NEEDED so that subsequent Appends from other users allowed!
     logger = DictLogger()
     modules_dict = {
         module_name : module.__file__
