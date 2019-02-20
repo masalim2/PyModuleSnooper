@@ -22,10 +22,10 @@ from datetime import datetime
 import json
 import logging
 import os
+import socket
 import sys
 
-TIME_FMT = '%m-%d-%Y %H:%M:%S.%f'
-DATE_FMT = '%m-%d-%Y'
+DATETIME_FMT = '%m-%d-%Y %H:%M:%S.%f'
 LOGFILE_ROOT = os.path.join('/projects', 'datascience', 'PyModuleSnooper', 'log')
 
 class DictLogger:
@@ -33,7 +33,7 @@ class DictLogger:
     def __init__(self):
         now = datetime.now()
         self._info = {
-            'timestamp' : now.strftime(TIME_FMT),
+            'timestamp' : now.strftime(DATETIME_FMT),
             'sys.executable': sys.executable,
             'sys.path': sys.path,
             'cobalt_envs':
@@ -46,8 +46,16 @@ class DictLogger:
         logger.propagate = False
         logger.setLevel(logging.INFO)
 
-        todays_date = now.strftime(DATE_FMT)
-        log_path = os.path.join(LOGFILE_ROOT, todays_date)
+        # LOGROOT/year/month/day/CobaltID/hostname.PID.hour.minute.second.m
+        year,month,day = map(str, (now.year,now.month,now.day))
+        job_id = os.environ.get('COBALT_JOBID', 'no-ID')
+        log_dir = os.path.join(LOGFILE_ROOT, year, month, day, job_id)
+        os.makedirs(log_dir, exist_ok=True)
+
+        fname = '{}.{}.{}'.format(
+            socket.gethostname(), os.getpid(), now.strftime('%H.%M.%S.%f')
+        )
+        log_path = os.path.join(log_dir, fname)
         handler_file = logging.FileHandler(log_path)
         formatter = logging.Formatter('%(message)s')
         handler_file.formatter = formatter
