@@ -95,7 +95,7 @@ def inspect_and_log():
     logger = DictLogger()
     modules_dict = {
         module_name : module.__file__
-        for module_name, module in sys.modules.items()
+        for module_name, module in sys.modules.copy().items()
         if hasattr(module, '__file__')
     }
     logger.log_modules(modules_dict)
