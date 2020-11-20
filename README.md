@@ -17,7 +17,7 @@ Disable Snooping
 ----------------
 Pass `-S` flag to Python interpreter to disable the `site` module and
 `sitecustomize` hook entirely.  Alternatively, set the environment flag
-`DISABLE_PYMODULE_SNOOP` (any non-empty string will disable it).
+`DISABLE_PYMODULE_LOG` (any non-empty string will disable it).
 
 Analysis
 ---------

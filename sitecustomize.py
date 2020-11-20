@@ -26,7 +26,10 @@ import socket
 import sys
 
 DATETIME_FMT = '%m-%d-%Y %H:%M:%S.%f'
-LOGFILE_ROOT = os.path.join('/projects', 'datascience', 'PyModuleSnooper', 'log')
+LOGFILE_ROOT = os.path.join('/lus', 'theta-fs0', 'logs', 'pythonlogging', 'module_usage')
+
+def date_fmt(n):
+    return "%02d" % n
 
 class DictLogger:
     '''Set up logger to emit message to system log facility'''
@@ -40,17 +43,18 @@ class DictLogger:
                 { k:v for k,v in os.environ.items() 
                   if k.startswith('COBALT')
                 },
+            'hostname': socket.gethostname(),
+            'pid': os.getpid(),
         }
 
         logger = logging.getLogger("PyModuleSnooper")
         logger.propagate = False
         logger.setLevel(logging.INFO)
 
-        # LOGROOT/year/month/day/CobaltID/hostname.PID.hour.minute.second.m
-        year,month,day = map(str, (now.year,now.month,now.day))
+        # LOGROOT/year/month/day/hostname.PID.hour.minute.second.m
+        year,month,day = map(date_fmt, (now.year,now.month,now.day))
         job_id = os.environ.get('COBALT_JOBID', 'no-ID')
-        log_dir = os.path.join(LOGFILE_ROOT, year, month, day, job_id)
-        os.makedirs(log_dir, exist_ok=True)
+        log_dir = os.path.join(LOGFILE_ROOT, year, month, day)
 
         fname = '{}.{}.{}'.format(
             socket.gethostname(), os.getpid(), now.strftime('%H.%M.%S.%f')
@@ -86,9 +90,8 @@ def is_mpi_rank_nonzero():
 def inspect_and_log():
     '''Grab paths of all loaded modules and log them'''
     if is_mpi_rank_nonzero(): return
-    if os.environ.get('DISABLE_PYMODULE_SNOOP', False): return
+    if os.environ.get('DISABLE_PYMODULE_LOG', False): return
 
-    os.umask(0o002) # NEEDED so that subsequent Appends from other users allowed!
     logger = DictLogger()
     modules_dict = {
         module_name : module.__file__
@@ -97,5 +100,5 @@ def inspect_and_log():
     }
     logger.log_modules(modules_dict)
 
-if not os.environ.get('DISABLE_PYMODULE_SNOOP', False):
+if not os.environ.get('DISABLE_PYMODULE_LOG', False):
     atexit.register(inspect_and_log)
