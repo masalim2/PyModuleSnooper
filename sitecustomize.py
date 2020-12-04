@@ -80,12 +80,14 @@ def is_mpi_rank_nonzero():
 
     if MPI is None: 
         return False
-    elif MPI.Is_finalized():
+    elif hasattr(MPI, "Is_finalized") and MPI.Is_finalized():
         return False
-    elif not MPI.Is_initialized():
+    elif hasattr(MPI, "Is_initialized") and not MPI.Is_initialized():
         return False
-    else:
+    elif hasattr(MPI, "COMM_WORLD"):
         return MPI.COMM_WORLD.Get_rank() > 0
+    else:
+        return False
 
 def inspect_and_log():
     '''Grab paths of all loaded modules and log them'''
