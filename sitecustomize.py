@@ -66,8 +66,9 @@ class DictLogger:
         logger.addHandler(handler_file)
         self._logger = logger
 
-    def log_modules(self, modules_dict):
-        self._info['modules'] = modules_dict
+    def log_modules(self, module_paths, module_versions):
+        self._info['modules'] = module_paths
+        self._info['versions'] = module_versions
         self._logger.info(json.dumps(self._info))
 
 def is_mpi_rank_nonzero():
@@ -95,12 +96,17 @@ def inspect_and_log():
     if os.environ.get('DISABLE_PYMODULE_LOG', False): return
 
     logger = DictLogger()
-    modules_dict = {
+    module_paths = {
         module_name : module.__file__
         for module_name, module in sys.modules.copy().items()
         if hasattr(module, '__file__')
     }
-    logger.log_modules(modules_dict)
+    module_versions = {
+        module_name: str(getattr(module, "__version__", None))
+        for module_name, module in sys.modules.copy().items()
+        if module_name in module_paths
+    }
+    logger.log_modules(module_paths, module_versions)
 
 if not os.environ.get('DISABLE_PYMODULE_LOG', False):
     atexit.register(inspect_and_log)
