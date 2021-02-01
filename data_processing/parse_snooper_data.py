@@ -12,18 +12,17 @@ DEFAULT_YEARS = '2020'
 DEFAULT_MONTHS = ''
 DEFAULT_DAYS = ''
 DEFAULT_OUTPUT = 'output.csv.gz'
-system_nodes = {
-   'thetaknl': ['nid','thetamom','thetalogin'],
-   'thetagpu': ['thetagpusn','thetagpu'],
-   'cooley': ['cooley']
-}
-exclude_modules = ['selectors', 'mpl_toolkits', 'bisect', 'http', 'six', 'mkl', 'jsonschema', 'importlib', 'signal', '_sha3', 'numbers', 'ntpath', '_sitebuiltins', 'pvectorc', 'pathlib', 'ast', 'weakref', '_frozen_importlib_external', 'zlib', 'posixpath', 'array', 'random', 'uuid', 'google', 'csv', 'datetime', 'argparse', '_ctypes', 'geometry_generation', 'reprlib', 'contextlib', 'pkgutil', 'math', 'token', 'select', 'fnmatch', 'site', 'importlib_metadata', '_bootlocale', 'textwrap', 'sre_compile', 'socketserver', 'queue', '_pickle', 'pickle', 'quopri', '_collections_abc', 're', 'sre_parse', '_datetime', 'struct','email', '_socket', 'types', 'inspect', 'tokenize', '_lzma', 'dis', 'hmac', '_blake2', 'shutil', 'enum', 'binascii', 'numpy', 'copy', 'calendar', 'subprocess', 'locale', 'attr', 'utils', 'sre_constants', 'stat', 'heapq', 'opcode', 'unicodedata', 'copyreg', '_bz2', 'bz2', 'encodings', '_random', '_ssl', 'json', 'gzip', 'operator', 'lzma', 'logging', '_frozen_importlib', '_posixsubprocess', 'ctypes', 'pytz', 'glob', 'multiprocessing', 'linecache', 'socket', '_struct', 'base64', '_bisect', 'collections', '_heapq', '_queue', '__future__', 'configparser', '_multiprocessing', 'ssl', 'os', 'pprint', 'threading', 'io', 'sitecustomize', 'string', 'abc', '_decimal', 'fractions', 'zipfile', '_json', 'dateutil', 'decimal', 'idna', '_opcode', 'typing', '_weakrefset', 'uu', '_csv', 'codecs', 'pyrsistent', 'gettext', 'distutils', 'mmap', 'tempfile', 'grp', 'keyword', 'genericpath', '_compression','urllib', '_hashlib', 'hashlib', 'functools', 'secrets', 'traceback', '_compat_pickle', 'zipp', 'warnings', 'platform','tmp35p9kwe8', 'tmpm84euyuj', 'tmpt_9_sds2', '_brotli', 'timeit', 'fcntl', 'tmpwcneiubv', 'requests', 'getpass', 'plistlib', 'cmd', 'opt_einsum', '_sysconfigdata_m_linux_x86_64-linux-gnu', 'sysconfig', 'tmpxq4d1a3m', '_elementtree', 'xml', 'tmpw9xunn91', 'termcolor', 'pdb', 'tmpkxth7ore', 'tmpqb8go_6x', 'tmp74dfl66u', 'imp', 'concurrent', 'pkg_resources', 'tmpwxt0y9yd', 'termios', 'code', 'tmp06z6_0zy', 'model', 'unittest', 'tarfile', 'codeop', 'tmp9620b8x3', 'tmp7l3xu742', 'absl', 'difflib', 'wrapt', 'socks', 'getopt', 'certifi', 'tmpyi_5zuhe', '_cffi_backend', 'bdb', 'mimetypes', 'tmptq4sq5bf', 'urllib3', 'stringprep', 'tmpyu6oop_m', 'tmp9ntcpj4a', 'gast', 'yaml', 'tmp_j19ztwv', 'tmpfcff1g_n', 'pyexpat', 'tmp45om8vyn', 'tmpi3li3h59', '_ni_label', 'shlex', 'tmp9zjej75c', 'brotli','__main__','html','ordereddict_backport','__mp_main__']
+DEFAULT_EXCLUDED_FILENAME = 'exclude_modules.json'
+DEFAULT_SYSTEM_NODES_FILENAME = 'system_nodes.json'
+DEFAULT_SOURCE_MAP_FILENAME = 'source_map.json'
 
 logger = logging.getLogger(__name__)
-
+exclude_modules = None
+system_nodes = None
 
 
 def main():
+   global exclude_modules,system_nodes
    ''' simple starter program that can be copied for use when starting a new script. '''
    logging_format = '%(asctime)s %(levelname)s:%(name)s:%(message)s'
    logging_datefmt = '%Y-%m-%d %H:%M:%S'
@@ -42,6 +41,12 @@ def main():
                        [DEFAULT=%s]' % DEFAULT_DAYS,default=DEFAULT_DAYS)
    parser.add_argument('-o','--output',help='Output data file name. Written as gzipped CSV. \
                        [DEFAULT=%s' % DEFAULT_OUTPUT,default=DEFAULT_OUTPUT)
+
+   parser.add_argument('--excluded',help='Path to a json file containing a list of modules to exclude from \
+                       the output. [DEFAULT=%s' % DEFAULT_EXCLUDED_FILENAME,default=DEFAULT_EXCLUDED_FILENAME)
+   parser.add_argument('--sysnodes',help='Path to a json file containing a dictionary of lists that map node \
+                       names to HPC names. [DEFAULT=%s' % DEFAULT_SYSTEM_NODES_FILENAME,default=DEFAULT_SYSTEM_NODES_FILENAME)
+   parser.add_argument('--srcmap',help='Path to which to dump the source map which labels each python environment. [DEFAULT=%s' % DEFAULT_SOURCE_MAP_FILENAME,default=DEFAULT_SOURCE_MAP_FILENAME)
 
    parser.add_argument('--debug', dest='debug', default=False, action='store_true', help="Set Logger to DEBUG")
    parser.add_argument('--error', dest='error', default=False, action='store_true', help="Set Logger to ERROR")
@@ -81,10 +86,19 @@ def main():
    logger.info('days       = %s',args.days)
    logger.info('output     = %s',args.output)
    logger.info('numprocs   = %s',args.numprocs)
+   logger.info('excluded   = %s',args.excluded)
+   logger.info('sysnodes   = %s',args.sysnodes)
+   start = time.time()
+   exclude_modules = json.load(open(args.excluded))
+   system_nodes = json.load(open(args.sysnodes))
 
    ds = build_dataset(args.logdir,args.numprocs,years,months,days)
 
    ds.to_csv(args.output,index=False,compression='gzip')
+
+   json.dump(gsource_map,open(args.srcmap,'w'),sort_keys=True, indent=3)
+
+   logger.info('total run time: %10.2f',time.time() - start)
 
 
 def commonize_source(source):
@@ -130,7 +144,24 @@ def parse_datafile(filename):
    # remove submodules
    module_keys = [x.split('.')[0] for x in module_keys]
    # keep unique keys only
-   module_keys = set(module_keys)
+   module_keys = list(set(module_keys))
+   
+   # loop over modules, remove any from `/tmp`
+   for module_name,module_filename in data['modules'].items():
+      if module_filename is None:
+         continue
+      if module_filename.startswith('/tmp/'):
+         try:
+            module_keys.remove(module_name.split('.')[0])
+         except ValueError:
+            print(module_name,module_filename)
+            continue
+         except KeyError:
+            print(module_name,module_filename)
+            continue
+   sys.stdout.flush()
+   sys.stderr.flush()
+
    # remove excluded modules
    for module_name in exclude_modules:
       try:
@@ -139,7 +170,7 @@ def parse_datafile(filename):
          continue
       except KeyError:
          continue
-   output_data['modules'] = module_keys
+   output_data['modules'] = list(module_keys)
    return output_data
 
 
@@ -200,7 +231,7 @@ def build_dataset(path,nprocs,years=[],months=[],days=[]):
             start = time.time()
    start = time.time()
    dataset = pd.DataFrame(outputs)
-   logger.info('dataset created: %s',time.time() - start)
+   logger.info('dataset created: %10.2f',time.time() - start)
    dataset['source_id'] = get_source_id(dataset)
    return dataset
 

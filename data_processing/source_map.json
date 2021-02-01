@@ -1,0 +1,16 @@
+{
+   "/gpfs/mira-home/bethanyl/tutorialenv2/bin/python": 9,
+   "/gpfs/mira-home/matitov/.miniconda3/bin/python": 6,
+   "/gpfs/mira-home/matitov/rct_gpu/bin/python": 7,
+   "/lus/theta-fs0/projects/DLHMC/thetaGPU/conda/bin/python": 5,
+   "/lus/theta-fs0/projects/HiMB_Beamline/g4bl/dh-env-theta/bin/python": 2,
+   "/lus/theta-fs0/software/datascience/Deephyper/0.2.1/env/bin/python": 13,
+   "/lus/theta-fs0/software/datascience/conda/miniconda3/2020-07/bin/python": 11,
+   "/lus/theta-fs0/software/datascience/conda/miniconda3/2020-12/bin/python": 1,
+   "/lus/theta-fs0/software/datascience/conda/miniconda3/4.5.4-modlog/bin/python": 4,
+   "/lus/theta-fs0/software/datascience/conda/miniconda3/latest/bin/python": 10,
+   "/lus/theta-fs0/software/thetagpu/balsam/env2/bin/python": 12,
+   "/lus/theta-fs0/software/thetagpu/conda/pt_master/2020-11-25/mconda3/bin/python": 0,
+   "/lus/theta-fs0/software/thetagpu/conda/tf_master/2020-11-11/mconda3/bin/python": 8,
+   "/lus/theta-fs0/software/thetagpu/conda/tf_master/2020-11/mconda3/bin/python": 3
+}
