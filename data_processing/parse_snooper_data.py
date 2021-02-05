@@ -19,10 +19,10 @@ DEFAULT_SOURCE_MAP_FILENAME = 'source_map.json'
 logger = logging.getLogger(__name__)
 exclude_modules = None
 system_nodes = None
-
+gconfig = {}
 
 def main():
-   global exclude_modules,system_nodes
+   global exclude_modules,system_nodes,gconfig
    ''' simple starter program that can be copied for use when starting a new script. '''
    logging_format = '%(asctime)s %(levelname)s:%(name)s:%(message)s'
    logging_datefmt = '%Y-%m-%d %H:%M:%S'
@@ -91,6 +91,10 @@ def main():
    start = time.time()
    exclude_modules = json.load(open(args.excluded))
    system_nodes = json.load(open(args.sysnodes))
+   gconfig['years'] = years
+   gconfig['months'] = months
+   gconfig['days'] = days
+   gconfig['path'] = args.logdir
 
    ds = build_dataset(args.logdir,args.numprocs,years,months,days)
 
@@ -136,6 +140,10 @@ def parse_datafile(filename):
       for node in nodes:
          if node in data['hostname']:
             output_data[system] = 1
+            output_data['hpcname'] = system
+            break
+      if output_data[system]:
+         break
    output_data['filename'] = filename
    output_data['source'] = commonize_source(data['sys.executable'])
    output_data['timestamp'] = pd.Timestamp(data['timestamp'])
@@ -154,10 +162,10 @@ def parse_datafile(filename):
          try:
             module_keys.remove(module_name.split('.')[0])
          except ValueError:
-            print(module_name,module_filename)
+            #print(module_name,module_filename)
             continue
          except KeyError:
-            print(module_name,module_filename)
+            #print(module_name,module_filename)
             continue
    sys.stdout.flush()
    sys.stderr.flush()
@@ -174,32 +182,46 @@ def parse_datafile(filename):
    return output_data
 
 
-def get_file_list(path,years=[],months=[],days=[]):
+def make_each_file_list(walk_inputs):
+   root,dirs,files = walk_inputs
+   years = gconfig['years']
+   months = gconfig['months']
+   days = gconfig['days']
+   path = gconfig['path']
+
+   filelist = []
+   logger.debug('root: %s',root)
+   rr = root.replace(path,'')
+   logger.debug('rr: %s',rr)
+   rr = rr.split('/')
+   logger.debug('rr: %s',rr)
+   if rr and len(rr) == 3:
+      year = int(rr[0])
+      month = int(rr[1])
+      day = int(rr[2])
+      if(((len(years) > 0 and year in years) or len(years) == 0) and
+         ((len(months) > 0 and month in months) or len(months) == 0) and
+         ((len(days) > 0 and day in days) or len(days) == 0)):
+         logger.info('%04d-%02d-%02d',year,month,day)
+         logger.info('%s #dirs: %s #files: %s',root,len(dirs),len(files))
+         for file in files:
+               filename = os.path.join(root,file)
+               if os.stat(filename).st_size == 0:
+                  continue
+               
+               filelist.append(filename)
+   return filelist
+
+def get_file_list(path,nprocs,years=[],months=[],days=[]):
    filelist = []
    logger.debug('get_file_list: path=%s years=%s months=%s days=%s',path,years,months,days)
    if not path.endswith('/'):
       path = path + '/'
-   for root, dirs, files in os.walk(path):
-      logger.debug('root: %s',root)
-      rr = root.replace(path,'')
-      logger.debug('rr: %s',rr)
-      rr = rr.split('/')
-      logger.debug('rr: %s',rr)
-      if rr and len(rr) == 3:
-         year = int(rr[0])
-         month = int(rr[1])
-         day = int(rr[2])
-         if(((len(years) > 0 and year in years) or len(years) == 0) and
-            ((len(months) > 0 and month in months) or len(months) == 0) and
-            ((len(days) > 0 and day in days) or len(days) == 0)):
-            logger.info('%04d-%02d-%02d',year,month,day)
-            logger.info('%s #dirs: %s #files: %s',root,len(dirs),len(files))
-            for file in files:
-                  filename = os.path.join(root,file)
-                  if os.stat(filename).st_size == 0:
-                     continue
-                  
-                  filelist.append(filename)
+
+   with concurrent.futures.ThreadPoolExecutor(max_workers=nprocs) as pool:
+      for each_filelist in pool.map(make_each_file_list,os.walk(path),chunksize=100):
+         filelist += each_filelist
+
    return filelist
 
 
@@ -212,7 +234,7 @@ def get_source_id(dataset):
 
 def build_dataset(path,nprocs,years=[],months=[],days=[]):
    #dataset = pd.DataFrame()
-   filelist = get_file_list(path,years,months,days)
+   filelist = get_file_list(path,nprocs,years,months,days)
    logger.info(f'{len(filelist)} files')
    with concurrent.futures.ThreadPoolExecutor(max_workers=nprocs) as pool:
       total_files = len(filelist)
