@@ -63,6 +63,7 @@
    "codeop", 
    "collections", 
    "concurrent", 
+   "conda", 
    "configparser", 
    "contextlib", 
    "copy", 
