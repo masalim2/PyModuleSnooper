@@ -38,11 +38,9 @@ class DictLogger:
         self._info = {
             'timestamp' : now.strftime(DATETIME_FMT),
             'sys.executable': sys.executable,
+            'sys.argv': sys.argv,
             'sys.path': sys.path,
-            'cobalt_envs':
-                { k:v for k,v in os.environ.items() 
-                  if k.startswith('COBALT')
-                },
+            'env': os.environ.copy(),
             'hostname': socket.gethostname(),
             'pid': os.getpid(),
         }
