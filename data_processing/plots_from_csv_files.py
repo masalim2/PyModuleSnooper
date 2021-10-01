@@ -96,7 +96,6 @@ def plot_dataset(dataset,output_filename=None):
 
    modules = ['balsam','tensorflow','torch','horovod','scipy','numpy','h5py','sklearn','keras']
    plot_module_usage_by_day(dataset,ax[0,0],modules)
-               #{'balsam':'green','tensorflow':'orange','torch':'red','horovod':'blue'})
 
    plot_source(dataset,ax[0,1])
 
@@ -161,7 +160,10 @@ def get_file_list(path,years=[],months=[],days=[]):
 
 def parse_datafile(filename):
    dataset = pd.read_csv(filename,compression='gzip')
-   dataset['modules'] = dataset['modules'].str.replace("'",'"').apply(json.loads)
+   try:
+      dataset['modules'] = dataset['modules'].str.replace("'",'"').apply(json.loads)
+   except:
+      logger.info('did not replace quotes in modules: %s',dataset['modules'])
    dataset['timestamp'] = pd.to_datetime(dataset['timestamp'])
    return dataset
 
@@ -186,6 +188,7 @@ def get_source_id(dataset):
 
 def plot_module_usage_by_day(dataset,ax,module_list,colors=None):
    data = []
+   dataset['modules'].fillna('',inplace=True)
    for module in module_list:
       module_entries = dataset[dataset['modules'].apply(lambda x: module in x)]
       use_per_day = dataset['timestamp'].groupby(module_entries['timestamp'].dt.day).count()
