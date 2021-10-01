@@ -99,7 +99,7 @@ def main():
    ds = build_dataset(args.logdir,args.numprocs,years,months,days)
 
    ds.to_csv(args.output,index=False,compression='gzip')
-
+   
    json.dump(gsource_map,open(args.srcmap,'w'),sort_keys=True, indent=3)
 
    logger.info('total run time: %10.2f',time.time() - start)
@@ -243,14 +243,15 @@ def build_dataset(path,nprocs,years=[],months=[],days=[]):
       start = time.time()
       outputs = []
       for data in pool.map(parse_datafile,filelist,chunksize=100):
-         outputs.append(data)
-         file_counter += 1
-         if file_counter % one_percent == 0:
-            files_per_sec = one_percent / (time.time() - start)
-            percent_done = int(file_counter / total_files * 100)
-            logger.info('percent done: %3d%%   files/second: %10.2f',percent_done,files_per_sec)
-            sys.stderr.flush()
-            start = time.time()
+         if len(data) > 0:
+            outputs.append(data)
+            file_counter += 1
+            if file_counter % one_percent == 0:
+               files_per_sec = one_percent / (time.time() - start)
+               percent_done = int(file_counter / total_files * 100)
+               logger.info('percent done: %3d%%   files/second: %10.2f',percent_done,files_per_sec)
+               sys.stderr.flush()
+               start = time.time()
    start = time.time()
    dataset = pd.DataFrame(outputs)
    logger.info('dataset created: %10.2f',time.time() - start)
