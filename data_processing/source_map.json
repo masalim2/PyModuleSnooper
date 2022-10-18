@@ -1,0 +1,8 @@
+{
+   "/lus/theta-fs0/software/datascience/conda/miniconda3/2020-12/bin/python": 3,
+   "/lus/theta-fs0/software/datascience/conda/miniconda3/latest/bin/python": 4,
+   "/lus/theta-fs0/software/thetagpu/conda/pt_master/2020-11-25/mconda3/bin/python": 2,
+   "/lus/theta-fs0/software/thetagpu/conda/tf_master/2020-11-11/mconda3/bin/python": 5,
+   "/lus/theta-fs0/software/thetagpu/conda/tf_master/2020-12-23/mconda3/bin/python": 1,
+   "/lus/theta-fs0/software/thetagpu/conda/tf_master/2021-01-08/mconda3/bin/python": 0
+}
